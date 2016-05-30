@@ -2,21 +2,31 @@
 
 public class Dag : MonoBehaviour
 {
+    public GameObject textPrototype;
+    public GameObject borkPrototype;
+
     // Use this for initialization
     void Start()
     {
+        //
+        // Score
+        //
         _score = 0.0f;
         _scoreMultiplier = 0.0f;
         _multiplierIncrement = 1f;
 
+        //
+        // BOrking
+        //
         _timeBetweenBorks = 1.0f;
         _timeSinceLastBork = 0.0f;
 
+        //
+        // Bouncing and collision
+        //
         _nextBounceSpeed = 5.0f;
         _bounceIncrement = 1.0f;
         _horizontalImpulse = 5.0f;
-        _hadCollision = false;
-
         _timeSinceHit = float.MaxValue;
         _timeToHit = 0.5f;
     }
@@ -41,10 +51,10 @@ public class Dag : MonoBehaviour
                 _timeSinceLastBork = 0;
                 Vector3 pos = this.GetComponentInChildren<Transform>().position;
 
-                //GameObject bork = GameObject.Instantiate(borkPrototype);
-                //bork.transform.position = pos;
+                GameObject bork = GameObject.Instantiate(borkPrototype);
+                bork.transform.position = pos;
 
-                addScore(100);
+                addScore(100, transform.position + new Vector3(1, 1));
             }
         }
         _timeSinceLastBork += Time.deltaTime;
@@ -76,7 +86,9 @@ public class Dag : MonoBehaviour
         //
         // Update the score
         //
-        GameObject.Find("Score").GetComponent<TextMesh>().text = _score.ToString() + "\n<size=48>x</size> " + _scoreMultiplier.ToString();
+        GameObject.Find("Score").GetComponent<TextMesh>().text =
+            _score.ToString() + "\n" +
+            GetMultiplierString();
     }
 
     void OnCollisionEnter2D(Collision2D collision)
@@ -89,30 +101,54 @@ public class Dag : MonoBehaviour
                 incrementMultiplier();
                 _nextBounceSpeed += _bounceIncrement;
             }
-            _hadCollision = false;
+            else
+            {
+                resetMultiplier();
+            }
         }
         if (collision.gameObject.CompareTag("Obstacle"))
         {
-            _hadCollision = true;
+            // Do something when you hit an obstacle
+        }
+        if (collision.gameObject.CompareTag("Pickup"))
+        {
+            ParticleSystem ps = collision.gameObject.GetComponent<ParticleSystem>();
+            ps.Emit(40);
+            EmitText("Collected!", collision.gameObject.transform.position);
         }
     }
 
+    void OnTriggerEnter2D( Collider2D other)
+    {
+        addScore( 100, other.transform.position );
+        Destroy(other.gameObject);
+    }
+
+
+    //
+    // Score manipulation
+    //
     public void resetMultiplier()
     {
-        _scoreMultiplier = 0.0f;
+        _scoreMultiplier = 1.0f;
     }
     public void incrementMultiplier()
     {
         _scoreMultiplier += _multiplierIncrement;
-        EmitText("<size=48>x</size> " + _scoreMultiplier.ToString(), transform.position + new Vector3(1, -1));
+        EmitText( GetMultiplierString(), transform.position + new Vector3(1, -1));
     }
-    public void addScore(float score)
+    public void addScore(float score, Vector3 where )
     {
         float multipliedScore = score * _scoreMultiplier ;
         _score += multipliedScore;
-        EmitText(multipliedScore.ToString(), transform.position + new Vector3(1,1));
+        EmitText(multipliedScore.ToString(), where );
     }
 
+    /// <summary>
+    /// Emits a string with the text at pos
+    /// </summary>
+    /// <param name="str">The string to output</param>
+    /// <param name="pos">Where to emit the text</param>
     public void EmitText(string str, Vector3 pos )
     {
         pos.z -= 0.2f;
@@ -121,21 +157,23 @@ public class Dag : MonoBehaviour
         textInstance.GetComponent<TextMesh>().text = str;
     }
 
-    private float _score;
-    private float _scoreMultiplier;
-    private float _multiplierIncrement;
+    private string GetMultiplierString()
+    {
+        return "<size=32>x</size>" + _scoreMultiplier.ToString();
+    }
 
-    public GameObject textPrototype;
-    public GameObject borkPrototype;
+    float _score;
+    float _scoreMultiplier;
+    float _multiplierIncrement;
 
-    private float _timeBetweenBorks;
-    private float _timeSinceLastBork;
+    float _timeBetweenBorks;
+    float _timeSinceLastBork;
 
-    public float _nextBounceSpeed;
-    private float _bounceIncrement;
-    private float _horizontalImpulse;
-    private bool _hadCollision;
+    float _nextBounceSpeed;
+    float _bounceIncrement;
+    float _horizontalImpulse;
+    //bool _hadCollision;
 
-    private float _timeToHit;
-    private float _timeSinceHit;
+    float _timeToHit;
+    float _timeSinceHit;
 }
